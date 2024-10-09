@@ -87,11 +87,24 @@ pub enum BreakOpportunity {
 /// assert!(linebreaks("Hello world!").eq(vec![(6, Allowed), (12, Mandatory)]));
 /// ```
 pub fn linebreaks(s: &str) -> impl Iterator<Item = (usize, BreakOpportunity)> + Clone + '_ {
+    linebreaks_iter(s.char_indices(), s.len())
+}
+
+/// Returns an iterator over line breaks opportunities in the specified input iterator
+///
+/// This is identical to `linebreaks()` but provides the ability to find line breaks
+/// across any iterable set of characters.  Indexes are also factored out
+pub fn linebreaks_iter<'a, N>(
+    iter: impl Iterator<Item = (N, char)> + Clone + 'a,
+    final_idx: N,
+) -> impl Iterator<Item = (N, BreakOpportunity)> + Clone + 'a
+where
+    N: Clone + 'a,
+{
     use BreakOpportunity::{Allowed, Mandatory};
 
-    s.char_indices()
-        .map(|(i, c)| (i, break_property(c as u32) as u8))
-        .chain(once((s.len(), eot)))
+    iter.map(|(i, c)| (i, break_property(c as u32) as u8))
+        .chain(once((final_idx, eot)))
         .scan((sot, false), |state, (i, cls)| {
             // ZWJ is handled outside the table to reduce its size
             let val = PAIR_TABLE[state.0 as usize][cls as usize];
